@@ -7,6 +7,7 @@ const pool = require('./db/pool');
 
 const authRoutes = require('./routes/auth');
 const personsRoutes = require('./routes/persons');
+const structureRoutes = require('./routes/structure');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,6 +19,7 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/persons', personsRoutes);
+app.use('/api/structure', structureRoutes);
 
 app.get('/health', async (req, res) => {
   try {
