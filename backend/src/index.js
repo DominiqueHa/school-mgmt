@@ -5,6 +5,8 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const pool = require('./db/pool');
 
+const authRoutes = require('./routes/auth');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -13,6 +15,9 @@ app.use(helmet());
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
+
+// Routes
+app.use('/api/auth', authRoutes);
 
 // Route de santé
 app.get('/health', async (req, res) => {
