@@ -7,8 +7,9 @@ interface AuthState {
   token: string | null;
   loading: boolean;
   error: string | null;
-  login: (username: string, password: string) => Promise<User>;
+  login: (username: string, password: string) => Promise<{ user: User; requires_role_selection: boolean; roles: string[] }>;
   logout: () => void;
+  setActiveRole: (role: string) => void;
 }
 
 const useAuthStore = create<AuthState>((set) => ({
@@ -17,19 +18,18 @@ const useAuthStore = create<AuthState>((set) => ({
   loading: false,
   error: null,
 
-  login: async (username: string, password: string): Promise<User> => {
+  login: async (username: string, password: string) => {
     set({ loading: true, error: null });
     try {
       const res = await api.post('/auth/login', { username, password });
-      const { token, user } = res.data;
+      const { token, user, requires_role_selection, roles } = res.data;
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
       set({ user, token, loading: false });
-      return user;
+      return { user, requires_role_selection, roles };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erreur de connexion';
       const axiosError = err as { response?: { data?: { error?: string } } };
-      const error = axiosError.response?.data?.error || message;
+      const error = axiosError.response?.data?.error || 'Erreur de connexion';
       set({ error, loading: false });
       throw err;
     }
@@ -39,6 +39,16 @@ const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     set({ user: null, token: null });
+  },
+
+  setActiveRole: (role: string) => {
+    set((state) => {
+      const updatedUser = state.user ? { ...state.user, role } : null;
+      if (updatedUser) {
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+      return { user: updatedUser };
+    });
   },
 }));
 

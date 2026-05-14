@@ -7,7 +7,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   const { username, password } = req.body;
 
   const result = await pool.query(
-    `SELECT u.*, r.name as role
+    `SELECT u.*, r.name as default_role
      FROM users u
      JOIN roles r ON u.role_id = r.id
      WHERE u.username = $1 AND u.is_active = TRUE`,
@@ -27,10 +27,23 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
+  // Récupérer tous les rôles actifs de l'utilisateur
+  const rolesResult = await pool.query(
+    `SELECT r.id, r.name
+     FROM roles r
+     JOIN user_roles ur ON r.id = ur.role_id
+     WHERE ur.user_id = $1 AND ur.is_active = TRUE`,
+    [user.id]
+  );
+
+  const roles = rolesResult.rows.map((r: { name: string }) => r.name);
+
+  // Si un seul rôle → connexion directe
+  // Si plusieurs rôles → retourner la liste pour sélection
   const signOptions: SignOptions = { expiresIn: '24h' };
 
   const token = jwt.sign(
-    { id: user.id, username: user.username, role: user.role },
+    { id: user.id, username: user.username, role: user.default_role, roles },
     process.env.JWT_SECRET as string,
     signOptions
   );
@@ -39,15 +52,54 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     message: 'Connexion réussie',
     token,
     must_change_password: user.must_change_password,
+    roles,
+    requires_role_selection: roles.length > 1,
     user: {
       id: user.id,
       username: user.username,
       first_name: user.first_name,
       last_name: user.last_name,
-      role: user.role,
+      role: user.default_role,
+      roles,
       photo_url: user.photo_url,
     },
   });
+};
+
+export const selectRole = async (req: Request, res: Response): Promise<void> => {
+  const { role } = req.body;
+  const userId = req.user!.id;
+
+  // Vérifier que l'utilisateur a bien ce rôle
+  const result = await pool.query(
+    `SELECT r.name FROM roles r
+     JOIN user_roles ur ON r.id = ur.role_id
+     WHERE ur.user_id = $1 AND r.name = $2 AND ur.is_active = TRUE`,
+    [userId, role]
+  );
+
+  if (result.rows.length === 0) {
+    res.status(403).json({ error: 'Rôle non autorisé' });
+    return;
+  }
+
+  // Récupérer tous les rôles
+  const rolesResult = await pool.query(
+    `SELECT r.name FROM roles r
+     JOIN user_roles ur ON r.id = ur.role_id
+     WHERE ur.user_id = $1 AND ur.is_active = TRUE`,
+    [userId]
+  );
+  const roles = rolesResult.rows.map((r: { name: string }) => r.name);
+
+  const signOptions: SignOptions = { expiresIn: '24h' };
+  const token = jwt.sign(
+    { id: userId, username: req.user!.username, role, roles },
+    process.env.JWT_SECRET as string,
+    signOptions
+  );
+
+  res.json({ message: 'Rôle sélectionné', token, active_role: role });
 };
 
 export const me = async (req: Request, res: Response): Promise<void> => {
@@ -55,7 +107,8 @@ export const me = async (req: Request, res: Response): Promise<void> => {
     `SELECT u.id, u.username, u.first_name, u.last_name, u.email,
             u.phone, u.gender, u.date_of_birth, u.place_of_birth,
             u.nationality, u.address, u.id_card_number, u.photo_url,
-            u.is_active, u.must_change_password, r.name as role
+            u.is_active, u.must_change_password, u.status,
+            u.education_level, r.name as role
      FROM users u
      JOIN roles r ON u.role_id = r.id
      WHERE u.id = $1`,
@@ -67,7 +120,16 @@ export const me = async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  res.json({ user: result.rows[0] });
+  // Récupérer tous les rôles
+  const rolesResult = await pool.query(
+    `SELECT r.name FROM roles r
+     JOIN user_roles ur ON r.id = ur.role_id
+     WHERE ur.user_id = $1 AND ur.is_active = TRUE`,
+    [req.user!.id]
+  );
+  const roles = rolesResult.rows.map((r: { name: string }) => r.name);
+
+  res.json({ user: { ...result.rows[0], roles } });
 };
 
 export const changePassword = async (req: Request, res: Response): Promise<void> => {

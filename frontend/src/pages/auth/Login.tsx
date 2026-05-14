@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
-import { User } from '../../types';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -11,9 +10,11 @@ export default function Login() {
 
   const handleSubmit = async () => {
     try {
-      const user: User = await login(username, password);
+      const { user, requires_role_selection } = await login(username, password);
       if (user.must_change_password) {
         navigate('/change-password');
+      } else if (requires_role_selection) {
+        navigate('/select-role');
       } else {
         navigate('/dashboard');
       }
