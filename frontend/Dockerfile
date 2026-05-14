@@ -1,5 +1,7 @@
 FROM node:24-alpine
 
+ENV CI=true
+
 RUN npm install -g pnpm
 
 WORKDIR /app
