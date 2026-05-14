@@ -1,13 +1,34 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 
-const menuItems = {
+interface MenuItem {
+  path: string;
+  icon: string;
+  label: string;
+}
+
+const menuItems: Record<string, MenuItem[]> = {
   admin: [
     { path: '/dashboard', icon: '📊', label: 'Tableau de bord' },
+    { path: '/users', icon: '👥', label: 'Utilisateurs' },
     { path: '/students', icon: '🎒', label: 'Élèves' },
     { path: '/teachers', icon: '👨‍🏫', label: 'Enseignants' },
     { path: '/structure', icon: '🏫', label: 'Structure' },
     { path: '/staff', icon: '👷', label: 'Personnel' },
+  ],
+  director: [
+    { path: '/dashboard', icon: '📊', label: 'Tableau de bord' },
+    { path: '/users', icon: '👥', label: 'Utilisateurs' },
+    { path: '/students', icon: '🎒', label: 'Élèves' },
+    { path: '/teachers', icon: '👨‍🏫', label: 'Enseignants' },
+    { path: '/structure', icon: '🏫', label: 'Structure' },
+    { path: '/staff', icon: '👷', label: 'Personnel' },
+  ],
+  deputy_director: [
+    { path: '/dashboard', icon: '📊', label: 'Tableau de bord' },
+    { path: '/students', icon: '🎒', label: 'Élèves' },
+    { path: '/teachers', icon: '👨‍🏫', label: 'Enseignants' },
+    { path: '/structure', icon: '🏫', label: 'Structure' },
   ],
   teacher: [
     { path: '/dashboard', icon: '📊', label: 'Tableau de bord' },
@@ -24,7 +45,7 @@ const menuItems = {
 export default function Sidebar() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
-  const items = menuItems[user?.role] || [];
+  const items = menuItems[user?.role ?? ''] || [];
 
   const handleLogout = () => {
     logout();
@@ -33,7 +54,6 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col h-screen fixed left-0 top-0">
-      {/* Header */}
       <div className="p-6 border-b border-gray-800">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
@@ -46,7 +66,6 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1">
         {items.map((item) => (
           <NavLink
@@ -66,7 +85,6 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* User + Logout */}
       <div className="p-4 border-t border-gray-800">
         <div className="flex items-center gap-3 px-4 py-3 mb-2">
           <div className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-sm">
@@ -76,7 +94,7 @@ export default function Sidebar() {
             <p className="text-white text-sm font-medium truncate">
               {user?.first_name} {user?.last_name}
             </p>
-            <p className="text-gray-400 text-xs truncate">{user?.email}</p>
+            <p className="text-gray-400 text-xs truncate">{user?.username}</p>
           </div>
         </div>
         <button

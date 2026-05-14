@@ -9,6 +9,7 @@ import authRoutes from './routes/auth';
 import personsRoutes from './routes/persons';
 import structureRoutes from './routes/structure';
 import rbacRoutes from './routes/rbac';
+import usersRoutes from './routes/users';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,12 +23,13 @@ app.use('/api/auth', authRoutes);
 app.use('/api/persons', personsRoutes);
 app.use('/api/structure', structureRoutes);
 app.use('/api/rbac', rbacRoutes);
+app.use('/api/users', usersRoutes);
 
 app.get('/health', async (req, res) => {
   try {
     await pool.query('SELECT 1');
     res.json({ status: 'ok', service: 'school-mgmt-api', database: 'connected', timestamp: new Date().toISOString() });
-  } catch (err) {
+  } catch {
     res.status(500).json({ status: 'error', database: 'disconnected' });
   }
 });
